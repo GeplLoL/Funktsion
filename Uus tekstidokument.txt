@@ -1,0 +1,100 @@
+create table Employees(
+EmployeesID int primary key identity(1,1),
+Name varchar(50),
+DateOfBirh datetime,
+gender varchar(30),
+DepartentID int
+);
+
+create table [dbo].[EmployeesT](
+[EmployeesID] [int] Primary key,
+[Name] [nvarchar](50) Null,
+[DateOfBirh] [datetime] Null,
+[gender] [nvarchar](30) Null,
+[DepartentID] [int] Null,
+);
+
+
+INSERT INTO EmployeesT Values(1, 'Sam','1980-12-30 00:00:00.000', 'Male',1);
+INSERT INTO EmployeesT Values(2, 'Pam','1982-09-01 12:02:36.260', 'Female',2);
+INSERT INTO EmployeesT Values(3, 'John','1985-08-22 12:03:30.370', 'Male',1);
+INSERT INTO EmployeesT Values(4, 'Sara','1979-11-29 12:59:30.670', 'Female',3);
+INSERT INTO EmployeesT Values(5, 'Todd','1978-12-29 12:59:30.670', 'Male',1);
+
+CREATE FUNCTION fn_GetEmployeeNameById(@EmployeesID int)
+Returns nvarchar(20)
+as
+begin
+Return (Select Name from EmployeesT Where EmployeesID=@EmployeesID)
+end
+
+ALTER Function fn_GetEmployeeNameById(@EmployeesID int)
+Returns nvarchar(20)
+With Encryption
+as
+begin
+Return (Select Name from EmployeesT where EmployeesID=@EmployeesID)
+end
+
+ALTER Function fn_GetEmployeeNameById(@EmployeesID int)
+Returns nvarchar(20)
+With SchemaBinding
+as
+begin
+Return(Select name from dbo.EmployeesT where EmployeesID=@EmployeesID)
+End
+
+Drop table EmployeesT;
+Select * from  fn_GetEmployeeNameById();
+
+CREATE FUNCTION fn_ILTVF_GetEmployees()
+Returns Table
+as
+Return (Select EmployeesID, Name, Cast(DateOfBirh as Date) as DOB FROM Employees);
+
+CREATE FUNCTION fn_MSTVF_GetEmployees()
+Returns @Table Table (EmployeesID int, Name nvarchar(20), DOB Date)
+as
+Begin
+insert into @Table
+select EmployeesID,Name, Cast(DateOfBirh as Date)
+FROM Employees
+return
+END
+
+UPDATE fn_MSTVF_GetEmployees() set Name='Sam1' WHERE EmployeesID = 1;
+Create table #PersonDetails(Id int,Name nvarchar(20));
+Insert into #PersonDetails Values(1,'Mike');
+Insert into #PersonDetails Values(2,'John');
+Insert into #PersonDetails Values(3,'Todd');
+
+SELECT * FROM #PersonDetails;
+
+Select name from tempdb..sysobjects where name like '#PersonDetails%';
+
+CREATE PROCEDURE spCreateLocalTempTable
+as
+begin
+Create table #PersonDetails(Id int, Name nvarchar(20))
+insert into #PersonDetails Values(1,'Mike');
+insert into #PersonDetails Values(2,'John');
+insert into #PersonDetails Values(3, 'Todd');
+Select * from #PersonDetails
+End
+
+Create table ##EmployeeDetails (Id int, Name nvarchar(20));
+ALTER TABLE Employees
+ADD Salary int;
+
+Select * from Employees;
+
+UPDATE Employees SET Salary=2500 Where Name='Sam';
+UPDATE Employees SET Salary=6500 Where Name='Pam';
+UPDATE Employees SET Salary=4500 Where Name='John';
+UPDATE Employees SET Salary=5500 Where Name='Sara';
+UPDATE Employees SET Salary=3100 Where Name='Todd';
+
+Select * from Employees where Salary > 5000 and Salary < 7000;
+
+CREATE Index IX_Employees_Salary ON Employees (SALARY ASC);
+Execute sp_helptext Employees
