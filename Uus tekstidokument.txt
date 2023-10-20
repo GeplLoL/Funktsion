@@ -1,100 +1,282 @@
-create table Employees(
-EmployeesID int primary key identity(1,1),
-Name varchar(50),
-DateOfBirh datetime,
-gender varchar(30),
-DepartentID int
-);
+create function fn_ILTVF_GetEmployees()
+Returns table
+AS
+Return(select EmployeeKey,FirstName,Cast(BirthDate as Date) as DB
+from DimEmployee);
+Select * from fn_ILTVF_GetEmployees()
 
-create table [dbo].[EmployeesT](
-[EmployeesID] [int] Primary key,
-[Name] [nvarchar](50) Null,
-[DateOfBirh] [datetime] Null,
-[gender] [nvarchar](30) Null,
-[DepartentID] [int] Null,
-);
-
-
-INSERT INTO EmployeesT Values(1, 'Sam','1980-12-30 00:00:00.000', 'Male',1);
-INSERT INTO EmployeesT Values(2, 'Pam','1982-09-01 12:02:36.260', 'Female',2);
-INSERT INTO EmployeesT Values(3, 'John','1985-08-22 12:03:30.370', 'Male',1);
-INSERT INTO EmployeesT Values(4, 'Sara','1979-11-29 12:59:30.670', 'Female',3);
-INSERT INTO EmployeesT Values(5, 'Todd','1978-12-29 12:59:30.670', 'Male',1);
-
-CREATE FUNCTION fn_GetEmployeeNameById(@EmployeesID int)
-Returns nvarchar(20)
+CREATE function fn_MSTVF_GetEmployees()
+Returns @Table Table(id int,name varchar(20),DOB Date)
 as
 begin
-Return (Select Name from EmployeesT Where EmployeesID=@EmployeesID)
+insert into @Table
+select EmployeeKey,FirstName,Cast(BirthDate as Date)
+from DimEmployee
+Return
 end
+select * from fn_MSTVF_GetEmployees();
+UPDATE fn_ILTVF_GetEmployees set FirstName='sam1'Where id=1
 
-ALTER Function fn_GetEmployeeNameById(@EmployeesID int)
-Returns nvarchar(20)
-With Encryption
+Create table [dbo].[DimEmployees]
+(
+[EmployeeKey] [int] Primary Key,
+[FirstName][nvarchar](50) NULL,
+[BirthDate][datetime]Null,
+[Gender][nvarchar](10) NULL
+)
+
+create function fn_GetEmployeeNameByld(@id int)
+Returns varchar(20)
 as
 begin
-Return (Select Name from EmployeesT where EmployeesID=@EmployeesID)
-end
+Return(select FirstName from DimEmployee where EmployeeKey=@id)
+End
 
-ALTER Function fn_GetEmployeeNameById(@EmployeesID int)
+select dbo.fn_GetEmployeeNameByld(5);
+alter function fn_GetEmployeeNameByld(@id int)
+Returns nvarchar(20)
+with encryption
+as
+begin
+return (select FirstName from DimEmployee where EmployeeKey=@id)
+End
+
+alter function fn_GetEmployeeNameByld(@id int)
 Returns nvarchar(20)
 With SchemaBinding
 as
-begin
-Return(Select name from dbo.EmployeesT where EmployeesID=@EmployeesID)
-End
-
-Drop table EmployeesT;
-Select * from  fn_GetEmployeeNameById();
-
-CREATE FUNCTION fn_ILTVF_GetEmployees()
-Returns Table
-as
-Return (Select EmployeesID, Name, Cast(DateOfBirh as Date) as DOB FROM Employees);
-
-CREATE FUNCTION fn_MSTVF_GetEmployees()
-Returns @Table Table (EmployeesID int, Name nvarchar(20), DOB Date)
-as
 Begin
-insert into @Table
-select EmployeesID,Name, Cast(DateOfBirh as Date)
-FROM Employees
-return
-END
-
-UPDATE fn_MSTVF_GetEmployees() set Name='Sam1' WHERE EmployeesID = 1;
-Create table #PersonDetails(Id int,Name nvarchar(20));
-Insert into #PersonDetails Values(1,'Mike');
-Insert into #PersonDetails Values(2,'John');
-Insert into #PersonDetails Values(3,'Todd');
-
-SELECT * FROM #PersonDetails;
-
-Select name from tempdb..sysobjects where name like '#PersonDetails%';
-
-CREATE PROCEDURE spCreateLocalTempTable
-as
-begin
-Create table #PersonDetails(Id int, Name nvarchar(20))
-insert into #PersonDetails Values(1,'Mike');
-insert into #PersonDetails Values(2,'John');
-insert into #PersonDetails Values(3, 'Todd');
-Select * from #PersonDetails
+Return(Select FirstName from dbo.DimEmployee Where EmployeeKey = @id)
 End
 
-Create table ##EmployeeDetails (Id int, Name nvarchar(20));
-ALTER TABLE Employees
-ADD Salary int;
+Create table #PersonDetails(
+Id int Primary key,
+Name nvarchar(20)
+);
 
-Select * from Employees;
+insert into #PersonDetails values(1,'Tom');
+insert into #PersonDetails values(2,'Rob');
+insert into #PersonDetails values(3,'Rom');
 
-UPDATE Employees SET Salary=2500 Where Name='Sam';
-UPDATE Employees SET Salary=6500 Where Name='Pam';
-UPDATE Employees SET Salary=4500 Where Name='John';
-UPDATE Employees SET Salary=5500 Where Name='Sara';
-UPDATE Employees SET Salary=3100 Where Name='Todd';
+select name from tempdb.sys.all_objects
+where name like '#PersonDetails%'
 
-Select * from Employees where Salary > 5000 and Salary < 7000;
+Create procedure spCreateLocalTempTable
+as
+begin
+Create table #PersonDetails(Id int Primary key,Name nvarchar(20)
+)
 
-CREATE Index IX_Employees_Salary ON Employees (SALARY ASC);
-Execute sp_helptext Employees
+insert into #PersonDetails values(1,'Tom')
+insert into #PersonDetails values(2,'Rob')
+insert into #PersonDetails values(3,'Rom')
+select * from #PersonDetails
+End
+exec spCreateLocalTempTable
+
+Create table ##PersonDetails(
+id int primary key,
+Name varchar(20)
+);
+select * from ##PersonDetails
+
+select * from DimEmployee
+
+select * from DimEmployee where BaseRate > 35 and BaseRate < 50
+
+Create index IX_DimEmployee_BaseRate
+ON DimEmployee(BaseRate ASC)
+ 
+
+SELECT * FROM DimEmployee
+ORDER BY BaseRate ASC;
+
+exec sys.sp_helpindex @objname = 'DimEmployee'
+
+execute sp_helptext DimEmployee
+
+drop index DimEmployee.firstNameLastName
+
+---------------------------------------------------INDEX
+
+Create Clustered index IX_tblEmployee_name
+ON tblEmployee(Name)
+--индекс ускоряет поиск
+
+
+Create Clustered index Gender_Salary
+ON tblEmployee(Gender DESC,Salary ASC)
+
+
+ --в порядке убываниия Gender, в порядке возррастания salary так сортрирует этот тригер
+
+
+Create Unique NonClustered Index UIX_tblEmployee_FirstName_LastName
+On tblEmployee(FirstName, LastName)
+ALTER TABLE tblEmployee 
+ADD CONSTRAINT UQ_tblEmployee_City 
+UNIQUE NONCLUSTERED (City)
+
+
+--не дублируются first name last name, не может быть 2 или более значения в city
+
+
+  CREATE UNIQUE INDEX IX_tblEmployee_City
+ON tblEmployee(City)
+WITH IGNORE_DUP_KEY
+Create nonClustered index IX_tblEmployee_salary
+on tblEmployee (Salary ASC)
+
+
+--если будет ошибка дублированного ключа то сервер проигрнорирует ее и не вызовет оишбку, упорядочен по возрастанию
+
+ 
+select * from tblEmployee where Salary > 4000 and Salary < 8000
+
+
+--значение в колонке Salary больше 4000 и меньше 8000
+
+
+delete from tblEmployee where salary = 2500 
+
+ --удаляет всех у кого 2500
+
+UPDATE tblEmployee set salary = 9000 where Salary = 7500
+
+-- обновляет у всех у кого было 7500 на 9000
+
+select * from tblEmployee order by salary
+
+ --сортировка по столбу salary
+
+select * from tblEmployee order by salary Desc
+
+ --сортировка по столбцу salary по убыванию
+
+select salary, COUNT(salary) as Total
+from tblEmployee
+Group by salary
+
+-- покажет сколько сотрудников имеют каждый из уровней заработной платы
+
+
+---------------------------------------------------VIEW
+
+-- Показывает данные сотрудников, включая их имя, зарплату, пол и отдел
+Create view vWEmployeeByDepartment
+as
+Select id, name, salary, gender, deptname
+from tblEmployee
+join tblDepartment
+on tblEmployee.DepartmentId = tblDepartment.DeptId
+
+select * from vWEmployeeByDepartment
+
+-- Показывает данные сотрудников в отделе IT, включая имя, зарплату, пол и отдел
+Create view vWITDepartment_Employees
+as
+Select id, name, salary, gender, deptname
+from tblEmployee
+join tblDepartment
+on tblEmployee.DepartmentId = tblDepartment.DeptId
+where tblDepartment.DeptName = 'IT'
+
+select * from vWITDepartment_Employees
+
+-- Показывает данные сотрудников, включая их имя, пол и отдел, исключая конфиденциальные данные
+Create view vWEmployeesNonConfidentialData
+as
+Select id, name, gender, deptname
+from tblEmployee
+join tblDepartment
+on tblEmployee.DepartmentId = tblDepartment.DeptId
+
+select * from vWEmployeesNonConfidentialData
+
+-- Показывает количество сотрудников в каждом отделе
+create view vWemployeesCountByDepartment
+as
+Select DeptName, COUNT(ID) as totalEmployees
+from tblEmployee
+join tblDepartment
+on tblEmployee.DepartmentId = tblDepartment.DeptId
+Group by DeptName
+
+select * from vWemployeesCountByDepartment
+
+
+---------------------------------------------------TRIGGER
+
+
+CREATE TRIGGER tr_DatabaseScopeTrigger
+ON DATABASE
+FOR CREATE_TABLE,ALTER_TABLE,DROP_TABLE
+AS
+BEGIN
+ROLLBACK
+PRINT'You cannot create, alter or drop a table in thee current database'
+END
+ --тригер который не дает создать изменить или удалить таблицу в этой базе данных
+CREATE TRIGGER tr_serverScopeTrigger
+ON ALL SERVER 
+FOR CREATE_TABLE,ALTER_TABLE,DROP_TABLE
+AS
+BEGIN
+ROLLBACK
+PRINT'You cannot create alter or drop a table in any database in the server'
+END
+ --тригер который не дает изменит удалить или добавить таблицу на сервере
+Disable TRIGGER tr_serverScopeTrigger ON ALL SERVER
+ 
+ENABLE TRIGGER tr_serverScopeTrigger ON ALL SERVER --отключить на всем сервере
+ 
+DROP TRIGGER tr_ServerScopeTrigger ON ALL SERVER 
+ 
+Create trigger tr_DatabaseScopeTrigger
+ON DATABASE
+FOR CREATE_TABLE
+AS
+BEGIN
+Print 'Database scope trigger'
+END 
+GO
+--тригер реагирует на создание таблицы в базе данных
+CREATE TRIGGER tr_ServerScopeTrigger
+On all server
+FOR CREATE_TABLE
+AS
+BEGIN
+Print'Server Scope trigger'
+END 
+GO
+ --тригер реагирует на создание таблицы в сервере
+
+ 
+
+EXEC sp_settriggerorder
+@triggername='tr_DatabaseScopeTrigger',
+@order='none',
+@stmttype='CREATE_TABLE',
+@namespace='DATABASE'
+GO
+--запустить тригер который реагирует на создание таблицы и в базе данных
+CREATE TRIGGER tr_LogonAuditTriggers
+ON all server 
+FOR LOGON
+AS 
+BEGIN
+
+
+declare @loginName NVARCHAR(100)
+SET @loginName = ORIGINAL_LOGIN()
+IF (SELECT COUNT(*) FROM sys.dm_exec_sessions
+WHERE is_user_process=1
+AND original_login_name = @loginName)>3
+BEGIN
+Print 'Fourth connection of'+@LoginName+'Blocked'
+ROLLBACK
+END
+END
+  --триггер для логона запрещающий зайти с 4 раза такому же никнейму
+
+Execute sp_readerrorlog
